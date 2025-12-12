@@ -33,6 +33,43 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userName, setUserName] = useState('SRU');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState<boolean>(false);
+
+  // Theme init and persistence
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    // Force dark as default when no saved preference exists
+    const initialDark = saved ? saved === 'dark' : true;
+    setIsDark(initialDark);
+    if (initialDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+    if (!saved) localStorage.setItem('theme', initialDark ? 'dark' : 'light');
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => {
+      const current = localStorage.getItem('theme');
+      // Only react to system changes if the user has not set a preference
+      if (!current) {
+        if (e.matches) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+        setIsDark(e.matches);
+      }
+    };
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
+  const setTheme = (next: boolean) => {
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+  const toggleTheme = () => setTheme(!isDark);
 
   const handleLogin = async (payload: { role: 'student' | 'admin'; email: string; name?: string; password?: string; isSignup?: boolean }) => {
     try {
@@ -61,31 +98,22 @@ export default function App() {
         return;
       }
       
-      // Handle login
-      if (payload.password) {
-        response = await apiLogin({ 
-          email: payload.email, 
-          password: payload.password 
-        });
-      } else {
-        // Fallback to compat login for testing
-        const { compatLogin } = await import('./lib/api');
-        response = await compatLogin({ 
-          role: payload.role, 
-          email: payload.email, 
-          name: payload.name 
-        });
+      // Handle login - enforce password-based auth only (persisted users)
+      if (!payload.password) {
+        toast.error('Password is required to login. If you do not have an account, please sign up.');
+        return;
       }
+      response = await apiLogin({ 
+        email: payload.email, 
+        password: payload.password 
+      });
       
       setAuthHeaders(payload.role, payload.email);
       setUserRole(payload.role);
       setUserEmail(payload.email);
       setUserName(response.user?.first_name || payload.name || 'User');
       
-      // Set admin status based on role
-      if (payload.role === 'admin' && response.user) {
-        response.user.is_staff = true;
-      }
+      // Rely on backend to determine admin/staff privileges; do not override on client
       
       const newScreen = payload.role === 'admin' ? 'admin' : 'dashboard';
       setCurrentScreen(newScreen);
@@ -148,7 +176,7 @@ export default function App() {
       case 'qrscanner':
         return <QRScannerScreen onBack={handleBack} />;
       case 'settings':
-        return <SettingsScreen onBack={handleBack} darkMode={false} onToggleDarkMode={() => {}} />;
+        return <SettingsScreen onBack={handleBack} darkMode={isDark} onToggleDarkMode={setTheme} />;
       case 'digitaltwin':
         return (
           <DigitalTwinScreen
@@ -179,7 +207,11 @@ export default function App() {
   const showNavbar = currentScreen !== 'login' && currentScreen !== 'home' && currentScreen !== 'splash' && !drawerOpen;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-amber-50 via-white to-blue-50">
+    <div className={
+      `relative min-h-screen ` +
+      `bg-gradient-to-br from-amber-50 via-white to-blue-50 ` +
+      `dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100`
+    }>
       {/* Toaster for notifications */}
       <Toaster position="top-center" richColors />
 
@@ -206,6 +238,15 @@ export default function App() {
           onProfileClick={() => setDrawerOpen(true)}
         />
       )}
+
+      {/* Floating theme toggle */}
+      <button
+        onClick={toggleTheme}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full shadow-lg border border-slate-200/60 bg-white text-slate-700 hover:scale-105 transition active:scale-95 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+      >
+        {isDark ? '☀️' : '🌙'}
+      </button>
 
       {/* Main Content */}
       <div className="relative z-10">

@@ -14,35 +14,6 @@ interface EventsPageProps {
 
 type UiEvent = EventDto & { attendees?: number; image?: string; color?: string };
 
-const fallbackEvents: UiEvent[] = [
-  {
-    id: 'fallback-1',
-    title: 'Annual Tech Fest 2025',
-    date: '2025-11-15',
-    time: '10:00',
-    location: 'Main Auditorium',
-    attendees: 450,
-    image: '🎭',
-    color: 'from-pink-500 to-rose-500',
-    description: 'Tech fest',
-    category: 'tech',
-    status: 'published',
-  },
-  {
-    id: 'fallback-2',
-    title: 'Cultural Night',
-    date: '2025-11-20',
-    time: '18:00',
-    location: 'Open Air Theatre',
-    attendees: 320,
-    image: '🎨',
-    color: 'from-cyan-500 to-blue-500',
-    description: 'Culture event',
-    category: 'cultural',
-    status: 'published',
-  },
-];
-
 export default function EventsPage({ userEmail }: EventsPageProps) {
   const [events, setEvents] = useState<UiEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,19 +38,24 @@ export default function EventsPage({ userEmail }: EventsPageProps) {
     let active = true;
     (async () => {
       try {
-        const data = await fetchEvents('published');
+        // Try fetching published first
+        let data = await fetchEvents('published');
+        if ((!data || data.length === 0)) {
+          // Fallback: fetch all without status filter
+          data = await fetchEvents();
+        }
         if (!active) return;
-        const normalized: UiEvent[] = data.map((evt, idx) => ({
+        const normalized: UiEvent[] = (data || []).map((evt, idx) => ({
           ...evt,
           attendees: 100 + idx * 50,
           image: ['🎭', '🎨', '⚽'][idx % 3],
           color: ['from-pink-500 to-rose-500', 'from-cyan-500 to-blue-500', 'from-yellow-500 to-orange-500'][idx % 3],
         }));
-        setEvents(normalized.length ? normalized : fallbackEvents);
+        setEvents(normalized);
       } catch (err) {
         console.error(err);
-        setEvents(fallbackEvents);
-        toast.error('Could not load events, showing sample data.');
+        setEvents([]);
+        toast.error('Could not load events.');
       } finally {
         if (active) setLoading(false);
       }
@@ -100,7 +76,7 @@ export default function EventsPage({ userEmail }: EventsPageProps) {
     }
     registerForEvent(selectedEvent.id, { fullName, studentId, email, phone })
       .then((res) => {
-        setQrToken(res.qrToken);
+        setQrToken(String(res.registrationId));
         toast.success('Registration successful!');
         setShowRegistration(false);
         setShowQR(true);
@@ -137,7 +113,10 @@ export default function EventsPage({ userEmail }: EventsPageProps) {
           {loading && (
             <div className="text-center py-12 text-gray-400">Loading events...</div>
           )}
-          {!loading && upcomingEvents.map((event, idx) => (
+          {!loading && upcomingEvents.length === 0 && (
+            <div className="text-center py-12 text-gray-400">No events found</div>
+          )}
+          {!loading && upcomingEvents.length > 0 && upcomingEvents.map((event, idx) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}

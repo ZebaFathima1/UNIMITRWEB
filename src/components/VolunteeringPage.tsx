@@ -1,54 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, MapPin, Calendar, Users, Award } from 'lucide-react';
 import { Button } from './ui/button';
 import VolunteerApplicationForm from './VolunteerApplicationForm';
+import { fetchVolunteeringOpportunities, type VolunteeringOpportunityDto } from '../lib/api';
+import { toast } from 'sonner';
 
 export default function VolunteeringPage() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<string | null>(null);
+  const [opportunities, setOpportunities] = useState<VolunteeringOpportunityDto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const opportunities = [
-    {
-      id: 1,
-      title: 'Beach Cleanup Drive',
-      organization: 'Green Earth NGO',
-      date: 'Nov 16, 2024',
-      location: 'Marina Beach',
-      volunteers: 45,
-      icon: '🌊',
-      color: 'from-cyan-500 to-blue-500',
-    },
-    {
-      id: 2,
-      title: 'Food Distribution',
-      organization: 'Feed the Hungry',
-      date: 'Nov 18, 2024',
-      location: 'City Center',
-      volunteers: 30,
-      icon: '🍲',
-      color: 'from-orange-500 to-red-500',
-    },
-    {
-      id: 3,
-      title: 'Teaching Underprivileged Kids',
-      organization: 'Education for All',
-      date: 'Ongoing',
-      location: 'Various Schools',
-      volunteers: 60,
-      icon: '📚',
-      color: 'from-purple-500 to-pink-500',
-    },
-    {
-      id: 4,
-      title: 'Animal Shelter Help',
-      organization: 'Pet Care Foundation',
-      date: 'Nov 20, 2024',
-      location: 'Animal Shelter',
-      volunteers: 25,
-      icon: '🐾',
-      color: 'from-yellow-500 to-orange-500',
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchVolunteeringOpportunities('published');
+        if (!active) return;
+        setOpportunities(data);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to load volunteering opportunities');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="min-h-screen pb-24 pt-20 px-6">
@@ -60,7 +39,13 @@ export default function VolunteeringPage() {
 
       {/* Opportunities List */}
       <div className="space-y-4">
-        {opportunities.map((opportunity, idx) => (
+        {loading && (
+          <div className="text-center py-12 text-gray-400">Loading opportunities...</div>
+        )}
+        {!loading && opportunities.length === 0 && (
+          <div className="text-center py-12 text-gray-400">No volunteering opportunities found</div>
+        )}
+        {!loading && opportunities.length > 0 && opportunities.map((opportunity, idx) => (
           <motion.div
             key={opportunity.id}
             initial={{ opacity: 0, y: 20 }}
@@ -69,17 +54,17 @@ export default function VolunteeringPage() {
             whileHover={{ scale: 1.02, y: -5 }}
             className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden"
           >
-            <div className={`h-20 bg-gradient-to-r ${opportunity.color} flex items-center justify-center text-4xl relative overflow-hidden`}>
+            <div className={`h-20 bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-2xl relative overflow-hidden`}>
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute inset-0 bg-white/10"
               />
               <motion.div
-                whileHover={{ scale: 1.3, rotate: 10 }}
-                className="relative z-10"
+                whileHover={{ scale: 1.1, rotate: 2 }}
+                className="relative z-10 text-white font-semibold"
               >
-                {opportunity.icon}
+                {opportunity.category || 'Volunteer'}
               </motion.div>
             </div>
             <div className="p-4">
@@ -97,7 +82,7 @@ export default function VolunteeringPage() {
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Users className="w-4 h-4 text-yellow-500" />
-                  <span>{opportunity.volunteers} volunteers joined</span>
+                  <span>{opportunity.requiredVolunteers} required</span>
                 </div>
               </div>
 

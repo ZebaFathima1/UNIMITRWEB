@@ -111,8 +111,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
               <Input
-                type="email"
-                placeholder="Email Address"
+                type={isSignup ? "email" : "text"}
+                placeholder={isSignup ? "Email Address" : "Username or Email"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-12 rounded-2xl border-purple-200 focus:border-purple-400 h-12"

@@ -6,7 +6,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .serializers import SignupSerializer, UserSerializer
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'
+    # Use username as the primary login field; map email -> username for convenience
+    username_field = 'username'
     
     @classmethod
     def get_token(cls, user):
@@ -17,17 +18,30 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # Allow login with email by mapping it to username
-        email = attrs.get('email') or attrs.get('username')
+        # Accept either email or username. If a user exists without a usable password,
+        # set the provided password once and continue (helps accounts created without password).
+        raw_identifier = attrs.get('email') or attrs.get('username')
         password = attrs.get('password')
-        
-        if email and password:
+
+        # Try to resolve the user by email first, then by username
+        user = None
+        if raw_identifier:
             try:
-                user = User.objects.get(email=email)
-                attrs['username'] = user.username
+                user = User.objects.get(email=raw_identifier)
             except User.DoesNotExist:
-                pass
-        
+                try:
+                    user = User.objects.get(username=raw_identifier)
+                except User.DoesNotExist:
+                    user = None
+
+        if user is not None:
+            # If the user has no usable password (e.g., created via compat), set it now
+            if password and not user.has_usable_password():
+                user.set_password(password)
+                user.save(update_fields=['password'])
+            # Ensure SimpleJWT authenticates using the username
+            attrs['username'] = user.username
+
         data = super().validate(attrs)
         data['user'] = UserSerializer(self.user).data
         return data

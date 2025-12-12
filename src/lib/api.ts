@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  baseURL: 'http://localhost:8000/api',
 });
 
 export type LoginPayload = {
@@ -60,10 +60,13 @@ export async function signup(payload: SignupPayload) {
 }
 
 export async function login(payload: LoginPayload) {
-  const { data } = await api.post('/auth/login/', { 
-    username: payload.email, 
+  // Send both username and email with the same value to support either auth mode server-side
+  const body: any = { 
+    username: payload.email,
+    email: payload.email,
     password: payload.password 
-  });
+  };
+  const { data } = await api.post('/auth/login/', body);
   api.defaults.headers.common['Authorization'] = `Bearer ${data.access}`;
   return data as { access: string; refresh: string; user: any };
 }
