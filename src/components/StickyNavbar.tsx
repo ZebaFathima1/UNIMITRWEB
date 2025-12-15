@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Calendar, Users, Heart, Briefcase, LogIn, UserCircle, BookOpen, Home } from 'lucide-react';
 import internshipLogo from '../assets/WhatsApp Image 2025-12-06 at 19.52.38_7e3c71fa.jpg';
 import { Button } from './ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 
 import type { Screen } from '../types';
 import logo from '../assets/WhatsApp Image 2025-11-29 at 15.20.36_76796458.jpg';
@@ -123,22 +124,28 @@ export default function StickyNavbar({ currentTab, onNavigate, onLogin, isLogged
           {/* Login/Profile Button */}
           <div>
             {isLoggedIn ? (
-              <button
-                onClick={onProfileClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-red-600 text-white shadow-md hover:shadow-lg transition-shadow"
-              >
-                <UserCircle className="w-5 h-5" />
-                <span>{userName || 'Profile'}</span>
-              </button>
-            ) : (
-              <Button
-                onClick={onLogin}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700"
-              >
-                <LogIn className="w-5 h-5" />
-                Login
-              </Button>
-            )}
+                <button
+                  onClick={onProfileClick}
+                  className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-red-600 text-white shadow-md hover:shadow-lg transition-shadow"
+                >
+                  <Avatar className="w-7 h-7 bg-white/20">
+                    {typeof window !== 'undefined' && localStorage.getItem('profileImage') ? (
+                      <AvatarImage src={localStorage.getItem('profileImage') as string} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="text-white">{(userName || 'P')[0]}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <span>{userName || 'Profile'}</span>
+                </button>
+              ) : (
+                <Button
+                  onClick={onLogin}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Login
+                </Button>
+              )}
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { X, Trophy, Award, QrCode, Settings, LogOut, User, Sparkles, Activity, ClipboardList } from 'lucide-react';
-import { Avatar, AvatarFallback } from './ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
 
 import type { Screen } from '../types';
@@ -13,6 +13,7 @@ interface ProfileDrawerProps {
 }
 
 export default function ProfileDrawer({ onClose, onLogout, onNavigate, userName }: ProfileDrawerProps) {
+  const savedProfileImage = typeof window !== 'undefined' ? localStorage.getItem('profileImage') : null;
   const badges = [
     { icon: '🎨', label: 'Creative Organizer', color: 'bg-pink-100 text-pink-700' },
     { icon: '💪', label: 'Top Volunteer', color: 'bg-purple-100 text-purple-700' },
@@ -107,7 +108,11 @@ export default function ProfileDrawer({ onClose, onLogout, onNavigate, userName 
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <Avatar className="w-16 h-16 bg-white/20">
-                <AvatarFallback className="text-white">{userName[0]}</AvatarFallback>
+                {savedProfileImage ? (
+                  <AvatarImage src={savedProfileImage} alt="Profile" />
+                ) : (
+                  <AvatarFallback className="text-white">{userName[0]}</AvatarFallback>
+                )}
               </Avatar>
               {/* Mood indicator */}
               <motion.div
